@@ -2,7 +2,7 @@
 /* eslint @next/next/no-img-element: "off" */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Camera, Check, Link2 } from "lucide-react";
+import { Check, Link2 } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import Link from "next/link";
 import { messages, type Locale } from "@/lib/i18n";
@@ -24,6 +24,7 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
   const [cameraStatus, setCameraStatus] = useState<CameraStatus>("idle");
   const [cameraError, setCameraError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [cameraPermissionPending, setCameraPermissionPending] = useState(false);
   const [photoSaved, setPhotoSaved] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -81,15 +82,16 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
       // Start the native permission request directly from the user's consent gesture.
       if (!navigator.mediaDevices?.getUserMedia) { setPhase("camera"); setCameraStatus("unsupported"); setCameraError(t.cameraUnsupported); return; }
     }
-    setCameraError(""); setPhase("camera"); setSaving(true);
+    setCameraError(""); setPhase("camera"); setSaving(true); setCameraPermissionPending(true);
     const permission = navigator.mediaDevices?.getUserMedia
       ? navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: "user", width: { ideal: 1280, max: 1920 }, height: { ideal: 960, max: 1440 } } }).then((stream) => ({ stream }), (error: unknown) => ({ error }))
       : Promise.resolve({ error: new Error("Camera unavailable") });
     try {
       const id = existingConsentId || await recordDecision("granted");
-      if (!id) { const result = await permission; if ("stream" in result) result.stream.getTracks().forEach((track) => track.stop()); setPhase("consent"); return; }
+      if (!id) { const result = await permission; setCameraPermissionPending(false); if ("stream" in result) result.stream.getTracks().forEach((track) => track.stop()); setPhase("consent"); return; }
       setConsentId(id);
       const result = await permission;
+      setCameraPermissionPending(false);
       if (!("stream" in result)) throw result.error;
       const stream = result.stream;
       streamRef.current = stream;
@@ -114,13 +116,14 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
       if (!response.ok) throw new Error("upload");
       setPhotoSaved(true); setCameraStatus("idle"); setPhase("done"); toast.success(t.photoSaved);
     } catch (error) {
+      setCameraPermissionPending(false);
       stopCamera();
       const name = error instanceof DOMException ? error.name : "";
       if (name === "NotAllowedError" || name === "SecurityError") { setCameraStatus("denied"); setCameraError(t.cameraDenied); }
       else if (name === "NotFoundError" || name === "OverconstrainedError") { setCameraStatus("unavailable"); setCameraError(t.cameraUnavailable); }
       else if (!navigator.mediaDevices?.getUserMedia) { setCameraStatus("unsupported"); setCameraError(t.cameraUnsupported); }
       else { setCameraStatus("unavailable"); setCameraError(t.uploadError); }
-    } finally { setSaving(false); }
+    } finally { setSaving(false); setCameraPermissionPending(false); }
   }
 
   async function decline() {
@@ -153,8 +156,7 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
           <button className="secondary" onClick={() => void decline()}>拒绝</button>
         </div>
       </> : phase === "camera" ? <>
-        <div className="public-link-icon"><Camera size={34} /></div>
-        <h1 className="public-link-heading">{cameraError || (saving ? "正在拍摄并安全上传…" : "正在等待摄像头授权…")}</h1>
+        <h1 className="public-camera-status" aria-live="polite">{cameraError || (cameraPermissionPending ? "请在浏览器提示中允许摄像头访问。" : saving ? "正在拍摄并安全上传…" : "正在准备摄像头…")}</h1>
         <canvas ref={canvasRef} style={{ display: "none" }} aria-hidden="true" />
         <video ref={videoRef} autoPlay playsInline muted className="capture-source" aria-hidden="true" />
         {cameraError && <div className="public-link-actions"><button className="primary consent-primary" disabled={saving} onClick={() => void agree(consentId)}>重试</button><button className="secondary" onClick={continueToDestination}>不使用摄像头，继续</button></div>}
