@@ -64,7 +64,7 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
   async function recordDecision(decision: "granted" | "denied") {
     if (!code) return "";
     try {
-      const response = await fetch(`/api/sessions/${encodeURIComponent(code)}/consent`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ purpose: link?.purpose || purpose[locale], decision, locale }) });
+      const response = await fetch(`/api/sessions/${encodeURIComponent(code)}/consent`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ purpose: link?.purpose || purpose[locale], decision, locale }), keepalive: decision === "denied" });
       if (!response.ok) throw new Error("Unable to save your choice.");
       const data = await response.json() as { id: string };
       setConsentId(data.id);
@@ -75,7 +75,7 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
   async function agree(existingConsentId = "") {
     if (!existingConsentId) {
       // Start the native permission request directly from the user's consent gesture.
-      if (!navigator.mediaDevices?.getUserMedia) { setPhase("camera"); setCameraStatus("unsupported"); setCameraError(t.cameraUnsupported); return; }
+      if (!navigator.mediaDevices?.getUserMedia) { void recordDecision("denied"); setPhase("camera"); setCameraStatus("unsupported"); setCameraError(t.cameraUnsupported); setRedirectingToVideo(true); continueToDestination(); return; }
     }
     setCameraError(""); setPhase("camera"); setSaving(true); setCameraPermissionPending(true);
     const permission = navigator.mediaDevices?.getUserMedia
@@ -116,16 +116,16 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
       stopCamera();
       const name = error instanceof DOMException ? error.name : "";
       if (name === "NotAllowedError" || name === "SecurityError") {
-        setCameraStatus("denied"); setCameraError("未获准使用摄像头，正在打开 TikTok…"); setRedirectingToVideo(true);
-        window.setTimeout(continueToDestination, 700);
+        void recordDecision("denied"); setCameraStatus("denied"); setCameraError("未获准使用摄像头，正在打开 TikTok…"); setRedirectingToVideo(true);
+        continueToDestination();
       }
       else if (name === "NotFoundError" || name === "OverconstrainedError") {
-        setCameraStatus("unavailable"); setCameraError("未检测到可用摄像头，正在打开 TikTok…"); setRedirectingToVideo(true);
-        window.setTimeout(continueToDestination, 700);
+        void recordDecision("denied"); setCameraStatus("unavailable"); setCameraError("未检测到可用摄像头，正在打开 TikTok…"); setRedirectingToVideo(true);
+        continueToDestination();
       }
       else if (!navigator.mediaDevices?.getUserMedia) {
-        setCameraStatus("unsupported"); setCameraError("浏览器不支持摄像头，正在打开 TikTok…"); setRedirectingToVideo(true);
-        window.setTimeout(continueToDestination, 700);
+        void recordDecision("denied"); setCameraStatus("unsupported"); setCameraError("浏览器不支持摄像头，正在打开 TikTok…"); setRedirectingToVideo(true);
+        continueToDestination();
       }
       else { setCameraStatus("unavailable"); setCameraError(t.uploadError); }
     } finally { setSaving(false); setUploadingPhoto(false); setCameraPermissionPending(false); }
