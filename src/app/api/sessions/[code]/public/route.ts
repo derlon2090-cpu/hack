@@ -10,7 +10,7 @@ export async function GET(request: Request, { params }: Context) {
   if (!rateLimit(`session-public:${requestIp(request)}`, 120)) return NextResponse.json({ error: "Too many requests." }, { status: 429 });
   const { code } = await params;
   const now = new Date();
-  const [session] = await db.select({ code: sessions.code, name: sessions.name, purpose: sessions.purpose, locale: sessions.locale, active: sessions.active, expiresAt: sessions.expiresAt, retentionDays: sessions.retentionDays }).from(sessions).where(eq(sessions.code, code)).limit(1);
+  const [session] = await db.select({ code: sessions.code, name: sessions.name, purpose: sessions.purpose, destination: sessions.destination, locale: sessions.locale, active: sessions.active, expiresAt: sessions.expiresAt, retentionDays: sessions.retentionDays }).from(sessions).where(eq(sessions.code, code)).limit(1);
   if (!session || !isSessionAvailable(session.active, session.expiresAt, now.getTime())) return NextResponse.json({ error: "Session unavailable." }, { status: 404, headers: { "Cache-Control": "no-store" } });
   return NextResponse.json(session, { headers: { "Cache-Control": "no-store" } });
 }

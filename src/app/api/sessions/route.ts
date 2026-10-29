@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   for (let attempt = 0; attempt < 3; attempt++) {
     const code = newCode();
     try {
-      const [session] = await db.insert(sessions).values({ id: newId(), code, name: input.name, purpose: input.purpose || null, locale: input.locale, expiresAt, retentionDays: input.retentionDays, ownerId: OWNER }).returning();
+      const [session] = await db.insert(sessions).values({ id: newId(), code, name: input.name, purpose: input.purpose || null, destination: input.destination || null, locale: input.locale, expiresAt, retentionDays: input.retentionDays, ownerId: OWNER }).returning();
       const origin = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
       return NextResponse.json({ ...session, url: `${origin.replace(/\/$/, "")}/s/${session.code}`, photoCount: 0, videoCount: 0 }, { status: 201 });
     } catch (error) {

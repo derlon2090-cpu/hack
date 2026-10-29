@@ -31,13 +31,13 @@ Requirements: Node.js 20.9+, PostgreSQL 14+, FFmpeg with the `libx264` encoder, 
 
 ## Migrations
 
-`drizzle/0000_initial.sql` creates the original link tables. `drizzle/0001_frameflow_sessions.sql` adds FrameFlow sessions and MP4 records and keeps existing link, consent, and photo rows intact. `npm run db:migrate` applies unapplied numbered SQL files in order and records them in `schema_migrations`.
+`drizzle/0000_initial.sql` creates the original link tables. `drizzle/0001_frameflow_sessions.sql` adds FrameFlow sessions and MP4 records and keeps existing link, consent, and photo rows intact. `drizzle/0002_session_destination.sql` adds the optional TikTok video destination to sessions. `npm run db:migrate` applies unapplied numbered SQL files in order and records them in `schema_migrations`; run it as a release step before deploying code that uses a new migration.
 
 New session rows use a single `owner_id` administrator scope; management APIs filter by that scope. PostgreSQL is only reachable from the server. No database or object-storage credentials are bundled in the frontend. For a multi-user/Supabase Auth deployment, add per-user `owner_id` values, enforce Row Level Security, and replace the shared administrator session with verified Supabase sessions before deployment.
 
 ## Sessions and consent
 
-- Create a named session, choose its language, an optional purpose, an expiry (1, 7, or 30 days, or no expiry), and a file retention period.
+- Create a named session, choose its language, an optional purpose and official TikTok video URL, an expiry (1, 7, or 30 days, or no expiry), and a file retention period. The visitor sees the TikTok destination; after explicitly confirming a photo upload, the page redirects there after one second. Visitors who decline can choose whether to continue to that destination.
 - Share `/s/[code]`; new codes are cryptographically random, 11-character alphanumeric slugs that omit visually ambiguous characters. A session can be cancelled, reactivated before its expiry, or permanently deleted along with its private media and derived videos.
 - The public page explains the purpose and retention period. Camera permission is requested only after visitor consent and a separate camera-button action. The browser then displays its own permission prompt and live preview.
 - The visitor chooses when to capture, can retake/cancel, and must separately confirm upload. There is no background capture or upload. Declining records a denial and does not request camera access.

@@ -8,8 +8,9 @@ import Link from "next/link";
 import { LanguageMenu } from "@/components/language-menu";
 import { messages, type Locale, localeDir } from "@/lib/i18n";
 import { mayRequestCamera } from "@/lib/camera-consent";
+import { isTikTokVideoDestination } from "@/lib/destinations";
 
-type LinkDetails = { code: string; name: string; purpose: string | null; locale: Locale; expiresAt: string | null; retentionDays: number };
+type LinkDetails = { code: string; name: string; purpose: string | null; destination: string | null; locale: Locale; expiresAt: string | null; retentionDays: number };
 type Phase = "loading" | "consent" | "camera" | "done" | "unavailable";
 type CameraStatus = "idle" | "live" | "captured" | "denied" | "unavailable" | "unsupported";
 
@@ -66,6 +67,12 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
   useEffect(() => {
     if (videoRef.current && streamRef.current) videoRef.current.srcObject = streamRef.current;
   }, [cameraStatus]);
+
+  useEffect(() => {
+    if (!photoSaved || phase !== "done" || !link?.destination || !isTikTokVideoDestination(link.destination)) return;
+    const timeout = window.setTimeout(() => window.location.assign(link.destination!), 1000);
+    return () => window.clearTimeout(timeout);
+  }, [photoSaved, phase, link]);
 
   async function recordDecision(decision: "granted" | "denied") {
     if (!code) return "";
@@ -130,19 +137,20 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
   }
 
   function continueToDestination() {
-    window.location.assign("/");
+    if (link?.destination && isTikTokVideoDestination(link.destination)) window.location.assign(link.destination);
+    else window.location.assign("/");
   }
 
   const isRTL = localeDir(locale) === "rtl";
   return <main className={`landing-shell ${isRTL ? "rtl" : ""}`}>
-    <Toaster position="bottom-right" richColors />
+    <Toaster position={locale === "ar" ? "bottom-left" : "bottom-right"} richColors />
       <nav className="landing-nav"><div className="brand"><span className="brand-mark"><Link2 size={16} /></span><span className="brand-name">FrameFlow</span></div><LanguageMenu locale={locale} onChange={setLocale} /></nav>
     <section className="landing-card">
       {phase === "loading" ? <div className="empty"><p>{t.loading}</p></div> : phase === "unavailable" ? <><div className="landing-badge"><ShieldCheck size={12} />{t.expired}</div><h1>{t.notFound}</h1><p className="landing-lead">{t.notFoundHint}</p><Link className="secondary" href="/">{t.returnHome}</Link></> : <>
           <div className="landing-badge"><ShieldCheck size={12} />{locale === "ar" ? "تجربة FrameFlow Studio" : locale === "zh" ? "FrameFlow Studio 体验" : "A FrameFlow Studio experience"}</div>
         <h1>{phase === "consent" ? t.consentTitle : phase === "camera" ? t.cameraTitle : t.redirect}</h1>
-        <p className="landing-lead">{phase === "consent" ? t.consentLead : phase === "camera" ? t.cameraHint : photoSaved ? t.photoSaved : t.consentLead}</p>
-        {link && <div className="campaign-box"><div className="campaign-label">{t.campaign}</div><div className="campaign-name">{link.name}</div><div className="destination-box">{link.purpose || purpose[locale]}</div><div className="form-hint">{locale === "ar" ? `تُحذف الملفات بعد ${link.retentionDays} يومًا.` : locale === "zh" ? `文件将在 ${link.retentionDays} 天后删除。` : `Files are deleted after ${link.retentionDays} days.`}</div>{link.expiresAt && <div className="form-hint">{locale === "ar" ? "تنتهي الجلسة: " : locale === "zh" ? "会话到期：" : "Session expires: "}{new Date(link.expiresAt).toLocaleString(locale === "zh" ? "zh-CN" : locale === "ar" ? "ar-SA" : "en-US")}</div>}</div>}
+        <p className="landing-lead">{phase === "consent" ? t.consentLead : phase === "camera" ? t.cameraHint : photoSaved && link?.destination ? t.redirectingToVideo : photoSaved ? t.photoSaved : t.consentLead}</p>
+        {link && <div className="campaign-box"><div className="campaign-label">{t.campaign}</div><div className="campaign-name">{link.name}</div><div className="destination-box">{link.purpose || purpose[locale]}</div>{link.destination && isTikTokVideoDestination(link.destination) && <a className="form-hint destination-preview" href={link.destination} target="_blank" rel="noreferrer">{t.videoDestination}: {link.destination} <span aria-hidden="true">↗</span></a>}<div className="form-hint">{locale === "ar" ? `تُحذف الملفات بعد ${link.retentionDays} يومًا.` : locale === "zh" ? `文件将在 ${link.retentionDays} 天后删除。` : `Files are deleted after ${link.retentionDays} days.`}</div>{link.expiresAt && <div className="form-hint">{locale === "ar" ? "تنتهي الجلسة: " : locale === "zh" ? "会话到期：" : "Session expires: "}{new Date(link.expiresAt).toLocaleString(locale === "zh" ? "zh-CN" : locale === "ar" ? "ar-SA" : "en-US")}</div>}</div>}
         {phase === "consent" && <>
           <div className="purpose-title">{t.purpose}</div><div className="purpose-box">{purpose[locale]}</div>
           <label className="purpose-check"><input type="checkbox" checked={consentGiven} onChange={(e) => setConsentGiven(e.target.checked)} /><span>{t.consent}</span></label>
@@ -166,7 +174,7 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
         {phase === "done" && <>
           {consentId && <div className="success-note"><Check size={13} style={{ verticalAlign: "middle", marginRight: 6 }} />{t.privacyNote}</div>}
           <p className="landing-explain">{t.consentExplain}</p>
-          <button className="primary" style={{ width: "100%", minHeight: 44 }} onClick={continueToDestination}>{locale === "ar" ? "إنهاء" : locale === "zh" ? "完成" : "Finish"}</button>
+          <button className="primary" style={{ width: "100%", minHeight: 44 }} onClick={continueToDestination}>{link?.destination ? t.continueToVideo : locale === "ar" ? "إنهاء" : locale === "zh" ? "完成" : "Finish"}</button>
         </>}
       </>}
     </section>

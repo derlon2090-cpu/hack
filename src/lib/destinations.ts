@@ -2,6 +2,18 @@ const TIKTOK_HOSTS = new Set(["tiktok.com", "www.tiktok.com", "m.tiktok.com", "v
 const YOUTUBE_HOSTS = new Set(["youtube.com", "www.youtube.com", "m.youtube.com"]);
 const VIDEO_ID = /^[a-zA-Z0-9_-]{11}$/;
 
+/** Accept only official, HTTPS TikTok video/share URLs for session destinations. */
+export function isTikTokVideoDestination(raw: string) {
+  let url: URL;
+  try { url = new URL(raw); } catch { return false; }
+  if (url.protocol !== "https:" || url.port || url.username || url.password) return false;
+  const host = url.hostname.toLowerCase();
+  if (!TIKTOK_HOSTS.has(host)) return false;
+  if (host === "vt.tiktok.com" || host === "vm.tiktok.com") return /^\/[A-Za-z0-9_-]{5,40}\/?$/.test(url.pathname);
+  return /^\/@[A-Za-z0-9._-]{1,50}\/video\/\d{8,25}\/?$/.test(url.pathname)
+    || /^\/t\/[A-Za-z0-9_-]{5,40}\/?$/.test(url.pathname);
+}
+
 /** Validate platform video URLs while returning no rewritten URL. Non-video public destinations remain supported. */
 export function isSupportedDestination(raw: string) {
   let url: URL;

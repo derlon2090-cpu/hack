@@ -5,6 +5,7 @@ export const sessions = pgTable("sessions", {
   code: text("code").notNull().unique(),
   name: text("name").notNull(),
   purpose: text("purpose"),
+  destination: text("destination"),
   locale: text("locale").notNull().default("en"),
   active: boolean("active").notNull().default(true),
   expiresAt: timestamp("expires_at", { withTimezone: true }),

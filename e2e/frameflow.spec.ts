@@ -5,6 +5,7 @@ const baseSession = {
   code: "camera-e2e-session",
   name: "Portrait study",
   purpose: "Capture a portrait for the team story.",
+  destination: null,
   locale: "en",
   active: true,
   expiresAt: null,
@@ -37,9 +38,11 @@ test("toggles access-code visibility and rejects an incorrect code without echoi
 });
 
 test("signs in and creates a session that displays its real share link", async ({ page }) => {
+  let createdDestination = "";
   await page.route("**/api/sessions", async (route) => {
     if (route.request().method() === "GET") return route.fulfill({ json: [] });
-    const payload = route.request().postDataJSON() as { name: string; locale: string; durationDays: number; purpose: string; retentionDays: number };
+    const payload = route.request().postDataJSON() as { name: string; locale: string; durationDays: number; purpose: string; destination: string; retentionDays: number };
+    createdDestination = payload.destination;
     return route.fulfill({ status: 201, json: { ...baseSession, ...payload, url: `http://127.0.0.1:3108/s/${baseSession.code}` } });
   });
   await page.route("**/api/photos", (route) => route.fulfill({ json: [] }));
@@ -53,9 +56,12 @@ test("signs in and creates a session that displays its real share link", async (
   await page.getByRole("button", { name: "Create a new session" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByLabel("Session name").fill("Portrait study");
+  await page.getByLabel("TikTok video URL (optional)").fill("https://vt.tiktok.com/ZSNhLMsxg/");
   await page.getByLabel("Purpose (optional)").fill("Capture a portrait for the team story.");
   await page.getByRole("button", { name: "Create session" }).last().click();
   await expect(page.getByText("http://127.0.0.1:3108/s/camera-e2e-session")).toBeVisible();
+  expect(createdDestination).toBe("https://vt.tiktok.com/ZSNhLMsxg/");
+  await expect(page.getByText("TikTok destination: vt.tiktok.com")).toBeVisible();
   await expect(page.getByRole("dialog").getByRole("link", { name: "Preview" })).toHaveAttribute("href", "/s/camera-e2e-session");
 });
 
@@ -77,6 +83,8 @@ test("records a decline without requesting camera permission", async ({ page }) 
 });
 
 test("captures a preview and uploads only after the visitor confirms", async ({ page }) => {
+  const destination = "https://www.tiktok.com/@creator/video/1234567890123456789";
+  await page.route("https://www.tiktok.com/**", (route) => route.fulfill({ status: 200, contentType: "text/html", body: "TikTok destination" }));
   await page.addInitScript(() => {
     const canvas = document.createElement("canvas"); canvas.width = 320; canvas.height = 240;
     const context = canvas.getContext("2d"); if (context) { context.fillStyle = "#8b5cf6"; context.fillRect(0, 0, canvas.width, canvas.height); }
@@ -85,7 +93,7 @@ test("captures a preview and uploads only after the visitor confirms", async ({ 
     state.__cameraRequests = 0;
     Object.defineProperty(navigator, "mediaDevices", { configurable: true, value: { getUserMedia: async () => { state.__cameraRequests! += 1; return testStream; } } });
   });
-  await page.route("**/api/sessions/camera-e2e-session/public", (route) => route.request().method() === "GET" ? route.fulfill({ json: { ...baseSession, views: 1 } }) : route.fulfill({ status: 202, json: { ok: true } }));
+  await page.route("**/api/sessions/camera-e2e-session/public", (route) => route.request().method() === "GET" ? route.fulfill({ json: { ...baseSession, destination, views: 1 } }) : route.fulfill({ status: 202, json: { ok: true } }));
   await page.route("**/api/sessions/camera-e2e-session/consent", (route) => route.fulfill({ status: 201, json: { id: "df5f0f98-498a-47d0-90b0-e80a8f24c2d0" } }));
   let uploads = 0;
   let uploadedData = "";
@@ -108,7 +116,8 @@ test("captures a preview and uploads only after the visitor confirms", async ({ 
   await expect(page.getByAltText("Preview of your photo before confirmation")).toBeVisible();
   expect(uploads).toBe(0);
   await page.getByRole("button", { name: "Confirm & upload" }).click();
-  await expect(page.locator(".landing-lead")).toHaveText("Your photo was saved successfully.");
+  await expect(page.locator(".landing-lead")).toHaveText("Photo saved. Redirecting to your TikTok video…");
   expect(uploads).toBe(1);
   expect(uploadedData.startsWith("data:image/jpeg;base64,")).toBe(true);
+  await page.waitForURL(destination);
 });

@@ -143,3 +143,5 @@ html[data-theme="light"] .error-note{background:#fff0f1;color:#a83c4e}
 html[data-theme="light"] .video-card{background:#fff;border-color:#e4e5f0}
 html[data-theme="light"] .privacy-panel{background:#fff;border-color:#e4e5f0;color:#555a70}
 @media(max-width:640px){html[data-theme="light"] .sidebar{background:rgba(247,247,251,.96);border-color:#e4e5f0}html[data-theme="light"] tr{background:#fff;border-color:#e4e5f0}}
+.destination-preview{display:block;margin-top:9px;overflow-wrap:anywhere;direction:ltr;text-align:left;color:var(--olive);line-height:1.6}
+.destination-preview:hover{text-decoration:underline}
