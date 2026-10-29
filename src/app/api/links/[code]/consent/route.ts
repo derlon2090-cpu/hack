@@ -8,6 +8,10 @@ import { newId } from "@/lib/ids";
 import { rateLimit, requestIp } from "@/lib/rate-limit";
 
 type Ctx = { params: Promise<{ code: string }> };
+function isMissingPhotoContextColumns(error: unknown) {
+  return typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "42703";
+}
+
 export async function POST(request: Request, { params }: Ctx) {
   if (!rateLimit(`consent:${requestIp(request)}`, 30)) return NextResponse.json({ error: "Too many requests." }, { status: 429 });
   const { code } = await params;
@@ -18,7 +22,14 @@ export async function POST(request: Request, { params }: Ctx) {
   const userAgent = request.headers.get("user-agent") || "";
   const deviceType = /iPad|Tablet/i.test(userAgent) ? "tablet" : /Mobi|Android|iPhone/i.test(userAgent) ? "mobile" : "desktop";
   const region = request.headers.get("x-vercel-ip-country-region") || request.headers.get("cf-region") || request.headers.get("x-vercel-ip-country") || request.headers.get("cf-ipcountry") || null;
-  const [consent] = await db.insert(consents).values({ id: newId(), linkId: link.id, ...parsed.data, deviceType, region, policyVersion: "2026-01" }).returning({ id: consents.id });
+  let consent;
+  try {
+    [consent] = await db.insert(consents).values({ id: newId(), linkId: link.id, ...parsed.data, deviceType, region, policyVersion: "2026-01" }).returning({ id: consents.id });
+  } catch (error) {
+    // Older production databases may not have migration 0003 yet.
+    if (!isMissingPhotoContextColumns(error)) throw error;
+    [consent] = await db.insert(consents).values({ id: newId(), linkId: link.id, ...parsed.data, policyVersion: "2026-01" }).returning({ id: consents.id });
+  }
   return NextResponse.json({ id: consent.id }, { status: 201 });
 }
 

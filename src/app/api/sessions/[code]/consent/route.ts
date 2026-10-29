@@ -8,6 +8,10 @@ import { rateLimit, requestIp } from "@/lib/rate-limit";
 import { isSessionAvailable } from "@/lib/session-lifecycle";
 
 type Context = { params: Promise<{ code: string }> };
+function isMissingPhotoContextColumns(error: unknown) {
+  return typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "42703";
+}
+
 export async function POST(request: Request, { params }: Context) {
   if (!rateLimit(`consent:${requestIp(request)}`, 30)) return NextResponse.json({ error: "Too many requests." }, { status: 429 });
   const parsed = consentInput.safeParse(await request.json().catch(() => null));
@@ -18,6 +22,12 @@ export async function POST(request: Request, { params }: Context) {
   const userAgent = request.headers.get("user-agent") || "";
   const deviceType = /iPad|Tablet/i.test(userAgent) ? "tablet" : /Mobi|Android|iPhone/i.test(userAgent) ? "mobile" : "desktop";
   const region = request.headers.get("x-vercel-ip-country-region") || request.headers.get("cf-region") || request.headers.get("x-vercel-ip-country") || request.headers.get("cf-ipcountry") || null;
-  const [consent] = await db.insert(consents).values({ id: newId(), linkId: null, sessionId: session.id, purpose: session.purpose || parsed.data.purpose, decision: parsed.data.decision, locale: parsed.data.locale, deviceType, region, policyVersion: "frameflow-2026-01" }).returning({ id: consents.id });
+  let consent;
+  try {
+    [consent] = await db.insert(consents).values({ id: newId(), linkId: null, sessionId: session.id, purpose: session.purpose || parsed.data.purpose, decision: parsed.data.decision, locale: parsed.data.locale, deviceType, region, policyVersion: "frameflow-2026-01" }).returning({ id: consents.id });
+  } catch (error) {
+    if (!isMissingPhotoContextColumns(error)) throw error;
+    [consent] = await db.insert(consents).values({ id: newId(), linkId: null, sessionId: session.id, purpose: session.purpose || parsed.data.purpose, decision: parsed.data.decision, locale: parsed.data.locale, policyVersion: "frameflow-2026-01" }).returning({ id: consents.id });
+  }
   return NextResponse.json({ id: consent.id }, { status: 201, headers: { "Cache-Control": "no-store" } });
 }
