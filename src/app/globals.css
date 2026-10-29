@@ -145,3 +145,24 @@ html[data-theme="light"] .privacy-panel{background:#fff;border-color:#e4e5f0;col
 @media(max-width:640px){html[data-theme="light"] .sidebar{background:rgba(247,247,251,.96);border-color:#e4e5f0}html[data-theme="light"] tr{background:#fff;border-color:#e4e5f0}}
 .destination-preview{display:block;margin-top:9px;overflow-wrap:anywhere;direction:ltr;text-align:left;color:var(--olive);line-height:1.6}
 .destination-preview:hover{text-decoration:underline}
+
+/* Minimal external-link consent screen, without application branding. */
+.public-capture-page{min-height:100svh;padding:0 22px;background:#fff;justify-content:center;gap:0;color:#202124}
+.public-capture-page .public-link-card{width:min(100%,520px);min-height:100svh;margin:0 auto;padding:0;border:0;border-radius:0;background:#fff;box-shadow:none;display:flex;flex-direction:column;align-items:center;text-align:center}
+.public-link-icon{width:112px;height:112px;margin-top:clamp(110px,23vh,300px);border-radius:50%;display:grid;place-items:center;background:#f7f7f7;color:#a5a5aa}
+.public-link-heading{margin:24px 0 0;color:#363636;font-size:18px;font-weight:500;letter-spacing:0}
+.public-destination{max-width:100%;margin:28px 0 0;color:#262626;font-size:clamp(18px,4vw,24px);line-height:1.5;overflow-wrap:anywhere}
+.public-consent-copy{width:100%;margin-top:18px;color:#525252;font-size:14px;line-height:1.85;text-align:center}
+.public-consent-copy p{margin:0 0 8px}
+.public-status{margin:16px 0 0;color:#686868;font-size:14px;line-height:1.8}
+.public-link-actions{width:min(100%,380px);margin-top:auto;padding:24px 0 max(8vh,42px);display:flex;flex-direction:column;gap:13px}
+.public-capture-page .consent-primary{width:100%;min-height:58px;padding:14px 18px;border:0;border-radius:4px;background:#fe2c55;color:#fff;font-size:16px;font-weight:550;box-shadow:none}
+.public-capture-page .consent-primary:hover{background:#ed234b;transform:none;filter:none}
+.public-capture-page .public-link-actions .secondary{align-self:center;padding:8px 18px;border:0;background:transparent;color:#777;font-size:14px}
+.public-capture-page .public-link-actions .secondary:hover{background:#f7f7f7}
+.public-capture-page .public-status+.secondary{margin-top:22px}
+.public-capture-page .capture-source{position:fixed;width:1px;height:1px;opacity:0;pointer-events:none}
+html[data-theme="dark"] .public-capture-page,html[data-theme="dark"] .public-capture-page .public-link-card{background:#fff;color:#202124}
+html[data-theme="dark"] .public-capture-page .public-link-heading,html[data-theme="dark"] .public-capture-page .public-destination{color:#262626}
+html[data-theme="dark"] .public-capture-page .public-campaign-name,html[data-theme="dark"] .public-capture-page .public-consent-copy,html[data-theme="dark"] .public-capture-page .public-status{color:#626262}
+@media(max-width:640px){.public-capture-page{padding:0 18px}.public-link-icon{width:104px;height:104px;margin-top:clamp(100px,21vh,260px)}.public-link-heading{font-size:17px}.public-consent-copy{font-size:13px}.public-link-actions{padding-bottom:max(7vh,34px)}}
