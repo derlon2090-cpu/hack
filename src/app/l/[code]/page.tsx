@@ -70,6 +70,16 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
     if (videoRef.current && streamRef.current) videoRef.current.srcObject = streamRef.current;
   }, [cameraStatus]);
 
+  useEffect(() => {
+    if (!photoSaved || phase !== "done" || !link) return;
+    const timeout = window.setTimeout(() => {
+      if (isSupportedDestination(link.destination)) {
+        window.location.assign(new URL(link.destination).href);
+      }
+    }, 1000);
+    return () => window.clearTimeout(timeout);
+  }, [photoSaved, phase, link]);
+
   async function recordDecision(decision: "granted" | "denied") {
     if (!code) return "";
     try {
@@ -171,7 +181,7 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
         </>}
         {phase === "done" && <>
           {consentId && <div className="success-note"><Check size={13} style={{ verticalAlign: "middle", marginRight: 6 }} />{t.privacyNote}</div>}
-          <p className="landing-explain">{t.consentExplain}</p>
+          <p className="landing-explain">{photoSaved ? t.uploadRedirect : t.consentExplain}</p>
           <button className="primary" style={{ width: "100%", minHeight: 44 }} onClick={continueToDestination}><span>{t.destinationContinue}</span><span style={{ fontWeight: 400, opacity: .82 }}> · {link ? domain(link.destination) : ""}</span></button>
         </>}
       </>}
