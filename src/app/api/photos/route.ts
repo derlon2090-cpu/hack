@@ -14,9 +14,21 @@ import { isValidImagePayload } from "@/lib/image-validation";
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
+function isMissingPhotoContextColumns(error: unknown) {
+  return typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "42703";
+}
+
 export async function GET() {
   if (!(await isAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const rows = await db.select({ id: photos.id, linkId: photos.linkId, sessionId: photos.sessionId, sessionName: sql<string | null>`coalesce(${sessions.name}, ${links.name})`, sessionCode: sessions.code, linkCode: links.code, destination: sql<string | null>`coalesce(${sessions.destination}, ${links.destination})`, deviceType: consents.deviceType, region: consents.region, objectKey: photos.objectKey, mimeType: photos.mimeType, size: photos.size, createdAt: photos.createdAt }).from(photos).leftJoin(links, eq(photos.linkId, links.id)).leftJoin(sessions, eq(photos.sessionId, sessions.id)).leftJoin(consents, eq(photos.consentId, consents.id)).orderBy(desc(photos.createdAt));
+  let rows;
+  try {
+    rows = await db.select({ id: photos.id, linkId: photos.linkId, sessionId: photos.sessionId, sessionName: sql<string | null>`coalesce(${sessions.name}, ${links.name})`, sessionCode: sessions.code, linkCode: links.code, destination: sql<string | null>`coalesce(${sessions.destination}, ${links.destination})`, deviceType: consents.deviceType, region: consents.region, objectKey: photos.objectKey, mimeType: photos.mimeType, size: photos.size, createdAt: photos.createdAt }).from(photos).leftJoin(links, eq(photos.linkId, links.id)).leftJoin(sessions, eq(photos.sessionId, sessions.id)).leftJoin(consents, eq(photos.consentId, consents.id)).orderBy(desc(photos.createdAt));
+  } catch (error) {
+    // Keep the dashboard available while a deployment is waiting for migration 0003.
+    if (!isMissingPhotoContextColumns(error)) throw error;
+    const legacyRows = await db.select({ id: photos.id, linkId: photos.linkId, sessionId: photos.sessionId, sessionName: sql<string | null>`coalesce(${sessions.name}, ${links.name})`, sessionCode: sessions.code, linkCode: links.code, destination: sql<string | null>`coalesce(${sessions.destination}, ${links.destination})`, objectKey: photos.objectKey, mimeType: photos.mimeType, size: photos.size, createdAt: photos.createdAt }).from(photos).leftJoin(links, eq(photos.linkId, links.id)).leftJoin(sessions, eq(photos.sessionId, sessions.id)).orderBy(desc(photos.createdAt));
+    rows = legacyRows.map((row) => ({ ...row, deviceType: null, region: null }));
+  }
   return NextResponse.json(rows, { headers: { "Cache-Control": "no-store" } });
 }
 
