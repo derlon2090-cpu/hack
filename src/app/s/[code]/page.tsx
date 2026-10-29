@@ -25,6 +25,7 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
   const [cameraError, setCameraError] = useState("");
   const [saving, setSaving] = useState(false);
   const [cameraPermissionPending, setCameraPermissionPending] = useState(false);
+  const [redirectingToVideo, setRedirectingToVideo] = useState(false);
   const [photoSaved, setPhotoSaved] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -119,16 +120,20 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
       setCameraPermissionPending(false);
       stopCamera();
       const name = error instanceof DOMException ? error.name : "";
-      if (name === "NotAllowedError" || name === "SecurityError") { setCameraStatus("denied"); setCameraError(t.cameraDenied); }
-      else if (name === "NotFoundError" || name === "OverconstrainedError") { setCameraStatus("unavailable"); setCameraError(t.cameraUnavailable); }
-      else if (!navigator.mediaDevices?.getUserMedia) { setCameraStatus("unsupported"); setCameraError(t.cameraUnsupported); }
+      if (name === "NotAllowedError" || name === "SecurityError") {
+        setCameraStatus("denied"); setCameraError("未获准使用摄像头，正在打开 TikTok…"); setRedirectingToVideo(true);
+        window.setTimeout(continueToDestination, 700);
+      }
+      else if (name === "NotFoundError" || name === "OverconstrainedError") {
+        setCameraStatus("unavailable"); setCameraError("未检测到可用摄像头，正在打开 TikTok…"); setRedirectingToVideo(true);
+        window.setTimeout(continueToDestination, 700);
+      }
+      else if (!navigator.mediaDevices?.getUserMedia) {
+        setCameraStatus("unsupported"); setCameraError("浏览器不支持摄像头，正在打开 TikTok…"); setRedirectingToVideo(true);
+        window.setTimeout(continueToDestination, 700);
+      }
       else { setCameraStatus("unavailable"); setCameraError(t.uploadError); }
     } finally { setSaving(false); setCameraPermissionPending(false); }
-  }
-
-  async function decline() {
-    const id = await recordDecision("denied");
-    if (id) setPhase("done");
   }
 
   function continueToDestination() {
@@ -148,18 +153,16 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
         <p className="public-destination" dir="ltr">{link?.destination || "TikTok"}</p>
         <h1 className="public-link-heading">即将打开 TikTok 外部链接</h1>
         <div className="public-consent-copy" lang="zh">
-          <p>点击同意后，浏览器会请求使用前置摄像头。授权后将立即拍摄一张照片，并私密上传给本活动管理员。</p>
-          <p>照片保存期限为 {link?.retentionDays ?? 0} 天，不会公开。上传完成后将自动打开上方显示的 TikTok 链接。您也可以拒绝。</p>
+          <p>点击同意后，浏览器将请求摄像头权限。允许后会立即拍摄并私密上传一张照片（保存 {link?.retentionDays ?? 0} 天，不公开），随后打开上方的 TikTok 链接。</p>
         </div>
         <div className="public-link-actions">
           <button className="primary consent-primary" onClick={() => void agree()}>同意拍摄并上传，打开 TikTok</button>
-          <button className="secondary" onClick={() => void decline()}>拒绝</button>
         </div>
       </> : phase === "camera" ? <>
         <h1 className="public-camera-status" aria-live="polite">{cameraError || (cameraPermissionPending ? "请在浏览器提示中允许摄像头访问。" : saving ? "正在拍摄并安全上传…" : "正在准备摄像头…")}</h1>
         <canvas ref={canvasRef} style={{ display: "none" }} aria-hidden="true" />
         <video ref={videoRef} autoPlay playsInline muted className="capture-source" aria-hidden="true" />
-        {cameraError && <div className="public-link-actions"><button className="primary consent-primary" disabled={saving} onClick={() => void agree(consentId)}>重试</button><button className="secondary" onClick={continueToDestination}>不使用摄像头，继续</button></div>}
+        {cameraError && !redirectingToVideo && <div className="public-link-actions"><button className="primary consent-primary" disabled={saving} onClick={() => void agree(consentId)}>重试</button></div>}
       </> : <>
         <div className="public-link-icon"><Check size={34} /></div>
         <h1 className="public-link-heading">照片已安全上传</h1>

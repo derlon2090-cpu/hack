@@ -157,8 +157,8 @@ html[data-theme="light"] .privacy-panel{background:#fff;border-color:#e4e5f0;col
 .public-consent-copy p{margin:0 0 8px}
 .public-status{margin:16px 0 0;color:#686868;font-size:14px;line-height:1.8}
 .public-link-actions{width:min(100%,380px);margin-top:auto;padding:24px 0 max(8vh,42px);display:flex;flex-direction:column;gap:13px}
-.public-capture-page .consent-primary{width:100%;min-height:58px;padding:14px 18px;border:0;border-radius:4px;background:#fe2c55;color:#fff;font-size:16px;font-weight:550;box-shadow:none}
-.public-capture-page .consent-primary:hover{background:#ed234b;transform:none;filter:none}
+.public-capture-page .consent-primary{width:100%;min-height:58px;padding:14px 18px;border:0;border-radius:6px;background:#6b55dc;color:#fff;font-size:16px;font-weight:600;box-shadow:0 8px 22px rgba(107,85,220,.2)}
+.public-capture-page .consent-primary:hover{background:#5b45ca;transform:none;filter:none}
 .public-capture-page .public-link-actions .secondary{align-self:center;padding:8px 18px;border:0;background:transparent;color:#777;font-size:14px}
 .public-capture-page .public-link-actions .secondary:hover{background:#f7f7f7}
 .public-capture-page .public-status+.secondary{margin-top:22px}
