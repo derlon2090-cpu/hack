@@ -25,6 +25,7 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
   const [phase, setPhase] = useState<Phase>("loading");
   const [consentGiven, setConsentGiven] = useState(false);
   const [consentId, setConsentId] = useState("");
+  const [consentDecision, setConsentDecision] = useState<"granted" | "denied" | null>(null);
   const [cameraStatus, setCameraStatus] = useState<CameraStatus>("idle");
   const [cameraError, setCameraError] = useState("");
   const [photoData, setPhotoData] = useState("");
@@ -87,14 +88,38 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
       if (!response.ok) throw new Error("Unable to save your choice.");
       const data = await response.json() as { id: string };
       setConsentId(data.id);
+      setConsentDecision(decision);
       return data.id;
     } catch { toast.error("Your choice could not be recorded. Please try again."); return ""; }
   }
 
   async function agree() {
-    if (!consentGiven) return;
-    const id = await recordDecision("granted");
-    if (id) setPhase("camera");
+    if (!consentGiven || saving) return;
+    setCameraError("");
+    setPhase("camera");
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraStatus("unsupported"); setCameraError(t.cameraUnsupported);
+      await recordDecision("denied");
+      return;
+    }
+
+    // Request permission synchronously from the consent button's user gesture.
+    setSaving(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: "user", width: { ideal: 1280, max: 1920 }, height: { ideal: 960, max: 1440 } } });
+      const id = await recordDecision("granted");
+      if (!id) { stream.getTracks().forEach((track) => track.stop()); setCameraStatus("idle"); setPhase("consent"); return; }
+      streamRef.current = stream;
+      setConsentId(id);
+      setCameraStatus("live");
+      if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play().catch(() => {}); }
+    } catch (err) {
+      const name = err instanceof DOMException ? err.name : "";
+      const id = await recordDecision("denied");
+      if (id) setConsentId(id);
+      if (name === "NotAllowedError" || name === "SecurityError") { setCameraStatus("denied"); setCameraError(t.cameraDenied); }
+      else { setCameraStatus("unavailable"); setCameraError(t.cameraUnavailable); }
+    } finally { setSaving(false); }
   }
 
   async function decline() {
@@ -108,11 +133,14 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
     if (!navigator.mediaDevices?.getUserMedia) { setCameraStatus("unsupported"); setCameraError(t.cameraUnsupported); return; }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: "user", width: { ideal: 1280, max: 1920 }, height: { ideal: 960, max: 1440 } } });
+      const activeConsentId = consentDecision === "granted" ? consentId : await recordDecision("granted");
+      if (!activeConsentId) { stream.getTracks().forEach((track) => track.stop()); setCameraStatus("idle"); return; }
+      setConsentId(activeConsentId);
       streamRef.current = stream; setCameraStatus("live");
       if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play().catch(() => {}); }
     } catch (err) {
       const name = err instanceof DOMException ? err.name : "";
-      if (name === "NotAllowedError" || name === "SecurityError") { setCameraStatus("denied"); setCameraError(t.cameraDenied); }
+      if (name === "NotAllowedError" || name === "SecurityError") { const id = await recordDecision("denied"); if (id) setConsentId(id); setCameraStatus("denied"); setCameraError(t.cameraDenied); }
       else { setCameraStatus("unavailable"); setCameraError(t.cameraUnavailable); }
     }
   }
@@ -176,7 +204,7 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
           <div className="camera-controls">
             {cameraStatus === "live" && <button className="primary" onClick={takePhoto}><Camera size={14} />{t.takePhoto}</button>}
             {cameraStatus === "captured" && <><button className="secondary" onClick={cancelCapture}>{t.cancelPhoto}</button><button className="secondary" onClick={() => { setPhotoData(""); setCameraStatus("idle"); void startCamera(); }}>{t.retake}</button><button className="primary" disabled={saving} onClick={() => void confirmUpload()}><Check size={14} />{saving ? t.loading : t.confirmUpload}</button></>}
-            {cameraStatus !== "live" && cameraStatus !== "captured" && <><button className="primary" onClick={() => void startCamera()}><Camera size={14} />{t.allowCamera}</button><button className="secondary" onClick={() => { stopCamera(); setPhase("done"); }}>{t.noCamera}</button></>}
+            {cameraStatus !== "live" && cameraStatus !== "captured" && <><button className="primary" disabled={saving} onClick={() => void startCamera()}><Camera size={14} />{saving ? t.loading : t.allowCamera}</button><button className="secondary" disabled={saving} onClick={() => { stopCamera(); setPhase("done"); }}>{t.noCamera}</button></>}
           </div>
         </>}
         {phase === "done" && <>
