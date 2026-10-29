@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { sessions, photos, videos } from "@/lib/schema";
+import { sessions, photos } from "@/lib/schema";
 import { isAdmin } from "@/lib/auth";
 import { createSessionInput } from "@/lib/session-validation";
 import { newCode, newId } from "@/lib/ids";
@@ -11,12 +11,11 @@ const OWNER = "admin";
 
 export async function GET() {
   if (!(await isAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const [rows, photoRows, videoRows] = await Promise.all([
+  const [rows, photoRows] = await Promise.all([
     db.select().from(sessions).where(eq(sessions.ownerId, OWNER)).orderBy(desc(sessions.createdAt)),
-    db.select({ id: photos.id, sessionId: photos.sessionId }).from(photos),
-    db.select({ id: videos.id, sessionId: videos.sessionId }).from(videos)
+    db.select({ id: photos.id, sessionId: photos.sessionId }).from(photos)
   ]);
-  const result = rows.map((row) => ({ ...row, photoCount: photoRows.filter((item) => item.sessionId === row.id).length, videoCount: videoRows.filter((item) => item.sessionId === row.id).length }));
+  const result = rows.map((row) => ({ ...row, photoCount: photoRows.filter((item) => item.sessionId === row.id).length }));
   return NextResponse.json(result, { headers: { "Cache-Control": "no-store" } });
 }
 
@@ -32,7 +31,7 @@ export async function POST(request: Request) {
     try {
       const [session] = await db.insert(sessions).values({ id: newId(), code, name: input.name, purpose: input.purpose || null, destination: input.destination || null, locale: input.locale, expiresAt, retentionDays: input.retentionDays, ownerId: OWNER }).returning();
       const origin = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
-      return NextResponse.json({ ...session, url: `${origin.replace(/\/$/, "")}/s/${session.code}`, photoCount: 0, videoCount: 0 }, { status: 201 });
+      return NextResponse.json({ ...session, url: `${origin.replace(/\/$/, "")}/s/${session.code}`, photoCount: 0 }, { status: 201 });
     } catch (error) {
       if ((error as { code?: string }).code === "23505" && attempt < 2) continue;
       throw error;

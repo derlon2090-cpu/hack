@@ -12,8 +12,7 @@ const baseSession = {
   retentionDays: 30,
   views: 0,
   createdAt: "2026-10-29T12:00:00.000Z",
-  photoCount: 0,
-  videoCount: 0
+  photoCount: 0
 };
 
 test("redirects an unsigned visit to the protected dashboard to access-code login", async ({ page }) => {
@@ -46,7 +45,6 @@ test("signs in and creates a session that displays its real share link", async (
     return route.fulfill({ status: 201, json: { ...baseSession, ...payload, url: `http://127.0.0.1:3108/s/${baseSession.code}` } });
   });
   await page.route("**/api/photos", (route) => route.fulfill({ json: [] }));
-  await page.route("**/api/videos", (route) => route.fulfill({ json: [] }));
   await page.goto("/login");
   await page.getByLabel("Access code").fill("frameflow-e2e-only");
   await page.getByRole("button", { name: "Enter FrameFlow" }).click();
