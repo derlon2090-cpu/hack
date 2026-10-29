@@ -7,6 +7,26 @@
 @media(max-width:640px){.app-shell{display:block;padding-bottom:65px}.sidebar{position:fixed;inset:auto 0 0 0;width:100%;height:59px;border:0;border-top:1px solid var(--line);padding:6px 15px;background:rgba(250,249,246,.96);backdrop-filter:blur(10px);flex-direction:row;justify-content:center}.sidebar>.brand,.side-label,.side-bottom{display:none}.sidebar nav{margin:0!important;width:min(400px,100%);display:flex;justify-content:space-around}.sidebar nav .nav-item{margin:0;width:45px;height:43px}.sidebar nav .nav-item:nth-child(n+3){display:none}.main,.rtl .main{margin:0;padding:25px 17px 30px;max-width:none}.page-top{align-items:flex-end;margin-bottom:24px}.page-title{font-size:27px;letter-spacing:-1px}.page-subtitle{font-size:11px;max-width:245px}.page-top>.primary{padding:10px 12px;font-size:10px;white-space:nowrap}.stats-grid{gap:8px;margin-bottom:27px}.stat-card{padding:12px 10px}.stat-heading{font-size:9px;gap:4px}.stat-icon{width:24px;height:24px}.stat-number{font-size:22px;margin-top:11px}.stat-foot{font-size:9px}.section-top{align-items:flex-end}.section-title{font-size:14px}.section-hint{font-size:10px}.search-box .input{width:130px;height:33px}.search-box svg{top:9px}.table-wrap{border:0;background:transparent;box-shadow:none;overflow:visible}table,tbody{display:block}thead{display:none}tr{display:block;position:relative;background:#fff;border:1px solid var(--line);border-radius:9px;padding:12px 12px 10px;margin-bottom:9px}td{display:none}.mobile-row{display:flex;align-items:center}.mobile-row .row-actions{margin-left:auto}.link-cell{min-width:0}.destination-domain{max-width:200px}.mobile-meta{display:flex!important;align-items:center;gap:10px;margin-top:8px;padding:0!important;border:0!important}.mobile-meta .mobile-destination{flex:1;min-width:0}.mobile-meta .mobile-visits{color:#85877e;font-size:10px;white-space:nowrap}.mobile-status{display:block!important;padding:0!important;border:0!important;position:absolute;top:16px;right:12px}.rtl .mobile-status{right:auto;left:12px}.mobile-meta .destination-domain{max-width:195px}.footer{margin-top:22px}.landing-shell{padding:19px 14px}.landing-card{margin:26px auto;padding:24px 19px}.landing-card h1{font-size:25px}.landing-nav{font-size:12px}.landing-bottom{font-size:9px}.modal{padding:22px}.rtl .sidebar{inset:auto 0 0;width:100%;height:59px;border-left:0;border-top:1px solid var(--line)}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
 
+/* Compact photo library cards with readable capture context. */
+.media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:12px;align-items:start}
+.media-card{display:grid;grid-template-columns:128px minmax(0,1fr);gap:13px;padding:11px;border:1px solid var(--line);border-radius:10px;background:var(--card);min-width:0}
+.media-thumb{height:118px;border-radius:7px;overflow:hidden;background:#efeee8}
+.media-thumb img{display:block;width:100%;height:100%;object-fit:cover}
+.media-card-copy{display:flex;flex-direction:column;align-items:flex-start;min-width:0;gap:4px}
+.media-name{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.media-date{color:#92938a;font-size:10px}
+.photo-meta{width:100%;margin:3px 0 2px;display:grid;grid-template-columns:1fr 1fr;gap:5px 10px}
+.photo-meta>div{min-width:0}
+.photo-meta dt{font-size:9px;color:#96978f}
+.photo-meta dd{margin:1px 0 0;font-size:10px;color:#484b43;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.photo-meta .photo-entry{grid-column:1/-1}
+.media-card-copy>.danger-icon{padding:3px 0;font-size:10px}
+html[data-theme="dark"] .media-card{background:#151925;border-color:#292f3d}
+html[data-theme="dark"] .media-thumb{background:#202534}
+html[data-theme="dark"] .photo-meta dd{color:#d8dae5}
+html[data-theme="dark"] .photo-meta dt,html[data-theme="dark"] .media-date{color:#8f98ac}
+@media(max-width:480px){.media-grid{grid-template-columns:1fr}.media-card{grid-template-columns:105px minmax(0,1fr);gap:10px;padding:9px}.media-thumb{height:105px}}
+
 /* Focused sign-in composition inspired by the supplied layout, in FrameFlow's indigo palette. */
 .frame-login.login-page{position:relative;isolation:isolate;display:block;min-height:100vh;min-height:100svh;overflow:hidden;padding:clamp(54px,9vh,92px) 22px 56px;background:#08090d;color:#f4f3fb}
 .frame-login::before,.frame-login::after{content:"";position:absolute;inset:0 0 auto;pointer-events:none}

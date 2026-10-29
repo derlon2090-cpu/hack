@@ -12,7 +12,7 @@ import { isTikTokVideoDestination } from "@/lib/destinations";
 import { useTheme } from "@/components/theme-provider";
 
 type SessionRecord = { id: string; code: string; name: string; purpose: string | null; destination: string | null; locale: Locale; active: boolean; expiresAt: string | null; retentionDays: number; views: number; createdAt: string; photoCount: number; url?: string };
-type PhotoRecord = { id: string; linkId: string | null; sessionId: string | null; sessionName: string | null; objectKey: string; mimeType: string; size: number; createdAt: string };
+type PhotoRecord = { id: string; linkId: string | null; sessionId: string | null; sessionName: string | null; sessionCode: string | null; linkCode: string | null; destination: string | null; deviceType: string | null; region: string | null; objectKey: string; mimeType: string; size: number; createdAt: string };
 type Tab = "overview" | "links" | "media" | "settings";
 
 const navItems = [
@@ -198,7 +198,14 @@ function SkeletonRows() {
 
 function MediaLibrary({ photos, locale, deleting, onDelete, t }: { photos: PhotoRecord[]; locale: Locale; deleting: string; onDelete: (p: PhotoRecord) => void; t: FrameFlowCopy }) {
   if (!photos.length) return <EmptyState title={t.noPhotos} hint={t.privacy} />;
-  return <section><div className="section-top"><div><h2 className="section-title">{t.capturedPhotos}</h2><p className="section-hint">{t.private}</p></div><span className="pill">{photos.length} {t.photo}</span></div><div className="media-grid">{photos.map((photo) => <article className="media-card" key={photo.id}><div className="media-thumb"><img src={`/api/photos/${photo.id}`} alt={`${t.photo} · ${photo.sessionName || "FrameFlow"}`} loading="lazy" /></div><div className="media-card-copy"><strong>{photo.sessionName || t.brand}</strong><span>{new Date(photo.createdAt).toLocaleDateString(locale === "ar" ? "ar-SA" : locale === "zh" ? "zh-CN" : "en-US")} · {(photo.size / 1024).toFixed(0)} KB</span><button className="icon-plain danger-icon" onClick={() => onDelete(photo)} disabled={deleting === photo.id} aria-label={t.deletePhoto}><Trash2 size={14} />{t.deletePhoto}</button></div></article>)}</div></section>;
+  const dateLocale = locale === "ar" ? "ar-SA" : locale === "zh" ? "zh-CN" : "en-US";
+  const labels = locale === "ar" ? { device: "الجهاز", region: "المنطقة", entry: "رابط الدخول", unknown: "غير معروف", mobile: "جوال", tablet: "جهاز لوحي", desktop: "كمبيوتر" } : locale === "zh" ? { device: "设备", region: "地区", entry: "进入链接", unknown: "未知", mobile: "手机", tablet: "平板", desktop: "电脑" } : { device: "Device", region: "Region", entry: "Entry link", unknown: "Unknown", mobile: "Mobile", tablet: "Tablet", desktop: "Desktop" };
+  const deviceName = (device: string | null) => device === "mobile" ? labels.mobile : device === "tablet" ? labels.tablet : device === "desktop" ? labels.desktop : labels.unknown;
+  return <section><div className="section-top"><div><h2 className="section-title">{t.capturedPhotos}</h2><p className="section-hint">{t.private}</p></div><span className="pill">{photos.length} {t.photo}</span></div><div className="media-grid">{photos.map((photo) => {
+    const entryPath = photo.sessionCode ? `/s/${photo.sessionCode}` : photo.linkCode ? `/l/${photo.linkCode}` : "";
+    const entryUrl = entryPath && typeof window !== "undefined" ? `${window.location.origin}${entryPath}` : entryPath;
+    return <article className="media-card" key={photo.id}><div className="media-thumb"><img src={`/api/photos/${photo.id}`} alt={`${t.photo} · ${photo.sessionName || "FrameFlow"}`} loading="lazy" /></div><div className="media-card-copy"><strong className="media-name">{photo.sessionName || t.brand}</strong><span className="media-date">{new Date(photo.createdAt).toLocaleDateString(dateLocale)} · {(photo.size / 1024).toFixed(0)} KB</span><dl className="photo-meta"><div><dt>{labels.device}</dt><dd>{deviceName(photo.deviceType)}</dd></div><div><dt>{labels.region}</dt><dd>{photo.region || labels.unknown}</dd></div><div className="photo-entry"><dt>{labels.entry}</dt><dd title={entryUrl || labels.unknown}>{entryUrl || labels.unknown}</dd></div></dl><button className="icon-plain danger-icon" onClick={() => onDelete(photo)} disabled={deleting === photo.id} aria-label={t.deletePhoto}><Trash2 size={14} />{t.deletePhoto}</button></div></article>;
+  })}</div></section>;
 }
 
 function SettingsPanel({ locale, onLocale, theme, onThemeChange, t }: { locale: Locale; onLocale: (locale: Locale) => void; theme: "dark" | "light"; onThemeChange: (theme: "dark" | "light") => void; t: FrameFlowCopy }) {

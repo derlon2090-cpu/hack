@@ -15,7 +15,10 @@ export async function POST(request: Request, { params }: Ctx) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid consent request." }, { status: 400 });
   const [link] = await db.select({ id: links.id }).from(links).where(and(eq(links.code, code), eq(links.active, true))).limit(1);
   if (!link) return NextResponse.json({ error: "Link not found." }, { status: 404 });
-  const [consent] = await db.insert(consents).values({ id: newId(), linkId: link.id, ...parsed.data, policyVersion: "2026-01" }).returning({ id: consents.id });
+  const userAgent = request.headers.get("user-agent") || "";
+  const deviceType = /iPad|Tablet/i.test(userAgent) ? "tablet" : /Mobi|Android|iPhone/i.test(userAgent) ? "mobile" : "desktop";
+  const region = request.headers.get("x-vercel-ip-country-region") || request.headers.get("cf-region") || request.headers.get("x-vercel-ip-country") || request.headers.get("cf-ipcountry") || null;
+  const [consent] = await db.insert(consents).values({ id: newId(), linkId: link.id, ...parsed.data, deviceType, region, policyVersion: "2026-01" }).returning({ id: consents.id });
   return NextResponse.json({ id: consent.id }, { status: 201 });
 }
 

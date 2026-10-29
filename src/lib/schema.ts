@@ -33,6 +33,8 @@ export const consents = pgTable("consents", {
   purpose: text("purpose").notNull(),
   decision: text("decision").notNull(),
   locale: text("locale").notNull(),
+  deviceType: text("device_type"),
+  region: text("region"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   policyVersion: text("policy_version").notNull()
 }, (table) => [index("consents_link_id_idx").on(table.linkId)]);

@@ -15,6 +15,9 @@ export async function POST(request: Request, { params }: Context) {
   const { code } = await params;
   const [session] = await db.select({ id: sessions.id, purpose: sessions.purpose, active: sessions.active, expiresAt: sessions.expiresAt }).from(sessions).where(eq(sessions.code, code)).limit(1);
   if (!session || !isSessionAvailable(session.active, session.expiresAt)) return NextResponse.json({ error: "Session unavailable." }, { status: 404 });
-  const [consent] = await db.insert(consents).values({ id: newId(), linkId: null, sessionId: session.id, purpose: session.purpose || parsed.data.purpose, decision: parsed.data.decision, locale: parsed.data.locale, policyVersion: "frameflow-2026-01" }).returning({ id: consents.id });
+  const userAgent = request.headers.get("user-agent") || "";
+  const deviceType = /iPad|Tablet/i.test(userAgent) ? "tablet" : /Mobi|Android|iPhone/i.test(userAgent) ? "mobile" : "desktop";
+  const region = request.headers.get("x-vercel-ip-country-region") || request.headers.get("cf-region") || request.headers.get("x-vercel-ip-country") || request.headers.get("cf-ipcountry") || null;
+  const [consent] = await db.insert(consents).values({ id: newId(), linkId: null, sessionId: session.id, purpose: session.purpose || parsed.data.purpose, decision: parsed.data.decision, locale: parsed.data.locale, deviceType, region, policyVersion: "frameflow-2026-01" }).returning({ id: consents.id });
   return NextResponse.json({ id: consent.id }, { status: 201, headers: { "Cache-Control": "no-store" } });
 }
