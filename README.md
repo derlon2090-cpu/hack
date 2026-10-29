@@ -38,7 +38,7 @@ New session rows use a single `owner_id` administrator scope; management APIs fi
 ## Sessions and consent
 
 - Create a named session, choose its language, an optional purpose, an expiry (1, 7, or 30 days, or no expiry), and a file retention period.
-- Share `/s/[code]`; codes are cryptographically random. A session can be cancelled, reactivated before its expiry, or permanently deleted along with its private media and derived videos.
+- Share `/s/[code]`; new codes are cryptographically random, 11-character alphanumeric slugs that omit visually ambiguous characters. A session can be cancelled, reactivated before its expiry, or permanently deleted along with its private media and derived videos.
 - The public page explains the purpose and retention period. Camera permission is requested only after visitor consent and a separate camera-button action. The browser then displays its own permission prompt and live preview.
 - The visitor chooses when to capture, can retake/cancel, and must separately confirm upload. There is no background capture or upload. Declining records a denial and does not request camera access.
 - Sessions and media endpoints validate the current server session. Share URLs are random bearer tokens with a selectable 1-, 7-, or 30-day expiry; deleting the MP4 revokes its share URL.
