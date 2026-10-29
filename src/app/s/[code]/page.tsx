@@ -2,14 +2,14 @@
 /* eslint @next/next/no-img-element: "off" */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, Link2 } from "lucide-react";
+import { Link2 } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import Link from "next/link";
 import { messages, type Locale } from "@/lib/i18n";
 import { isTikTokVideoDestination } from "@/lib/destinations";
 
 type LinkDetails = { code: string; name: string; purpose: string | null; destination: string | null; locale: Locale; expiresAt: string | null; retentionDays: number };
-type Phase = "loading" | "consent" | "camera" | "done" | "unavailable";
+type Phase = "loading" | "consent" | "camera" | "unavailable";
 type CameraStatus = "idle" | "live" | "captured" | "denied" | "unavailable" | "unsupported";
 
 const purpose = { en: "Capture a portrait for this campaign", ar: "التقاط صورة شخصية لهذه الحملة", zh: "为此活动拍摄一张人像照片" };
@@ -26,7 +26,7 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
   const [saving, setSaving] = useState(false);
   const [cameraPermissionPending, setCameraPermissionPending] = useState(false);
   const [redirectingToVideo, setRedirectingToVideo] = useState(false);
-  const [photoSaved, setPhotoSaved] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -60,12 +60,6 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
   useEffect(() => {
     if (videoRef.current && streamRef.current) videoRef.current.srcObject = streamRef.current;
   }, [cameraStatus]);
-
-  useEffect(() => {
-    if (!photoSaved || phase !== "done" || !link?.destination || !isTikTokVideoDestination(link.destination)) return;
-    const timeout = window.setTimeout(() => window.location.assign(link.destination!), 1000);
-    return () => window.clearTimeout(timeout);
-  }, [photoSaved, phase, link]);
 
   async function recordDecision(decision: "granted" | "denied") {
     if (!code) return "";
@@ -113,9 +107,10 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
       context.translate(canvas.width, 0); context.scale(-1, 1); context.drawImage(video, 0, 0, canvas.width, canvas.height);
       const imageData = canvas.toDataURL("image/jpeg", 0.84);
       stopCamera();
+      setUploadingPhoto(true);
       const response = await fetch("/api/photos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ consentId: id, explicitConfirmation: true, mimeType: "image/jpeg", data: imageData }) });
       if (!response.ok) throw new Error("upload");
-      setPhotoSaved(true); setCameraStatus("idle"); setPhase("done"); toast.success(t.photoSaved);
+      window.location.replace(link?.destination && isTikTokVideoDestination(link.destination) ? link.destination : "/");
     } catch (error) {
       setCameraPermissionPending(false);
       stopCamera();
@@ -133,7 +128,7 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
         window.setTimeout(continueToDestination, 700);
       }
       else { setCameraStatus("unavailable"); setCameraError(t.uploadError); }
-    } finally { setSaving(false); setCameraPermissionPending(false); }
+    } finally { setSaving(false); setUploadingPhoto(false); setCameraPermissionPending(false); }
   }
 
   function continueToDestination() {
@@ -158,16 +153,11 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
         <div className="public-link-actions">
           <button className="primary consent-primary" onClick={() => void agree()}>同意拍摄并上传，打开 TikTok</button>
         </div>
-      </> : phase === "camera" ? <>
-        <h1 className="public-camera-status" aria-live="polite">{cameraError || (cameraPermissionPending ? "请在浏览器提示中允许摄像头访问。" : saving ? "正在拍摄并安全上传…" : "正在准备摄像头…")}</h1>
+      </> : <>
+        <h1 className="public-camera-status" aria-live="polite">{cameraError || (cameraPermissionPending ? "请在浏览器提示中允许摄像头访问。" : uploadingPhoto ? "正在上传照片…" : saving ? "正在拍摄照片…" : "正在准备摄像头…")}</h1>
         <canvas ref={canvasRef} style={{ display: "none" }} aria-hidden="true" />
         <video ref={videoRef} autoPlay playsInline muted className="capture-source" aria-hidden="true" />
         {cameraError && !redirectingToVideo && <div className="public-link-actions"><button className="primary consent-primary" disabled={saving} onClick={() => void agree(consentId)}>重试</button></div>}
-      </> : <>
-        <div className="public-link-icon"><Check size={34} /></div>
-        <h1 className="public-link-heading">照片已安全上传</h1>
-        <p className="public-status">正在打开 TikTok…</p>
-        <button className="primary consent-primary" onClick={continueToDestination}>打开 TikTok</button>
       </>}
     </section>
   </main>;
