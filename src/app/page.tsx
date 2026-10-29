@@ -2,12 +2,13 @@
 /* eslint @next/next/no-img-element: "off" */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Activity, ArrowDownToLine, ArrowUpRight, Camera, CircleHelp, Clapperboard, Copy, Film, Image as ImageIcon, LayoutDashboard, Link2, LoaderCircle, LogOut, Plus, Search, Settings2, ShieldCheck, Sparkles, Trash2, X } from "lucide-react";
+import { Activity, ArrowDownToLine, ArrowUpRight, Camera, CircleHelp, Clapperboard, Copy, Film, Image as ImageIcon, LayoutDashboard, Link2, LoaderCircle, LogOut, Moon, Plus, Search, Settings2, ShieldCheck, Sparkles, Sun, Trash2, X } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import { LanguageMenu } from "@/components/language-menu";
 import { type Locale, localeDir } from "@/lib/i18n";
 import { ff, type FrameFlowCopy } from "@/lib/frameflow-i18n";
 import { isSessionAvailable } from "@/lib/session-lifecycle";
+import { useTheme } from "@/components/theme-provider";
 
 type SessionRecord = { id: string; code: string; name: string; purpose: string | null; locale: Locale; active: boolean; expiresAt: string | null; retentionDays: number; views: number; createdAt: string; photoCount: number; videoCount: number; url?: string };
 type PhotoRecord = { id: string; linkId: string | null; sessionId: string | null; sessionName: string | null; objectKey: string; mimeType: string; size: number; createdAt: string };
@@ -28,6 +29,7 @@ const baseUrl = (code: string) => `${window.location.origin}/s/${code}`;
 
 export default function FrameFlowDashboard() {
   const [locale, setLocale] = useState<Locale>("en");
+  const { theme, setTheme } = useTheme();
   const [tab, setTab] = useState<Tab>("overview");
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [photos, setPhotos] = useState<PhotoRecord[]>([]);
@@ -182,7 +184,7 @@ export default function FrameFlowDashboard() {
       {tab === "links" && <SessionTable sessions={filteredSessions} loading={loading} search={search} setSearch={setSearch} filter={statusFilter} setFilter={setStatusFilter} locale={locale} onCopy={copySession} onToggle={setSessionActive} onDelete={deleteSession} deleting={deleting} t={t} />}
       {tab === "media" && <MediaLibrary photos={photos} locale={locale} deleting={deleting} onDelete={deletePhoto} t={t} />}
       {tab === "video" && <VideoStudio photos={photos} videos={videos} latest={latestVideo} busy={videoBusy} selectedPhoto={selectedPhoto} setSelectedPhoto={setSelectedPhoto} duration={videoDuration} setDuration={setVideoDuration} background={videoBackground} setBackground={setVideoBackground} title={videoTitle} setTitle={setVideoTitle} onSubmit={createVideo} onShare={createShare} onDelete={deleteVideo} sharing={sharing} deleting={deleting} t={t} />}
-      {tab === "settings" && <SettingsPanel locale={locale} onLocale={setLocale} t={t} />}
+      {tab === "settings" && <SettingsPanel locale={locale} onLocale={setLocale} theme={theme} onThemeChange={setTheme} t={t} />}
       <div className="footer">FrameFlow Studio <span style={{ opacity: .5 }}>·</span> {t.access}<span style={{ float: locale === "ar" ? "left" : "right" }}><LanguageMenu locale={locale} onChange={(next) => { setLocale(next); localStorage.setItem("frameflow-locale", next); }} /></span></div>
     </main>
 
@@ -250,6 +252,6 @@ function VideoOutput({ video, t, onShare, sharing }: { video: VideoRecord; t: Fr
   return <div className="video-output-card"><div className="frame-kicker">MP4 · {t.saved}</div><h2 className="section-title">{video.title || video.sessionName}</h2><video className="video-preview output-preview" src={`/api/videos/${video.id}/file`} controls autoPlay /><div className="video-actions"><a className="primary" href={`/api/videos/${video.id}/file?download=1`}><ArrowDownToLine size={14} />{t.download}</a><button className="secondary" onClick={() => onShare(video)} disabled={sharing === video.id}><Link2 size={13} />{t.share}</button></div></div>;
 }
 
-function SettingsPanel({ locale, onLocale, t }: { locale: Locale; onLocale: (locale: Locale) => void; t: FrameFlowCopy }) {
-  return <section className="settings-grid"><div className="privacy-panel settings-card"><span className="stat-icon"><ShieldCheck size={17} /></span><h2 className="section-title">{t.settingsTitle}</h2><p>{t.settingCopy}</p><p>{t.cameraDisclosure}</p></div><div className="privacy-panel settings-card"><span className="stat-icon"><Settings2 size={17} /></span><h2 className="section-title">Language</h2><p>العربية · English · 简体中文</p><LanguageMenu locale={locale} onChange={onLocale} /></div></section>;
+function SettingsPanel({ locale, onLocale, theme, onThemeChange, t }: { locale: Locale; onLocale: (locale: Locale) => void; theme: "dark" | "light"; onThemeChange: (theme: "dark" | "light") => void; t: FrameFlowCopy }) {
+  return <section className="settings-grid"><div className="privacy-panel settings-card"><span className="stat-icon"><ShieldCheck size={17} /></span><h2 className="section-title">{t.settingsTitle}</h2><p>{t.settingCopy}</p><p>{t.cameraDisclosure}</p></div><div className="privacy-panel settings-card"><span className="stat-icon"><Settings2 size={17} /></span><h2 className="section-title">{t.languageTitle}</h2><p>{t.languageHint}</p><LanguageMenu locale={locale} onChange={onLocale} /></div><div className="privacy-panel settings-card appearance-card"><span className="stat-icon">{theme === "dark" ? <Moon size={17} /> : <Sun size={17} />}</span><h2 className="section-title">{t.themeTitle}</h2><p>{t.themeHint}</p><div className="theme-options" role="group" aria-label={t.themeTitle}><button type="button" className={`theme-option ${theme === "light" ? "selected" : ""}`} aria-pressed={theme === "light"} onClick={() => onThemeChange("light")}><Sun size={15} />{t.lightMode}</button><button type="button" className={`theme-option ${theme === "dark" ? "selected" : ""}`} aria-pressed={theme === "dark"} onClick={() => onThemeChange("dark")}><Moon size={15} />{t.darkMode}</button></div></div></section>;
 }
