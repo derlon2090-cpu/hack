@@ -162,7 +162,7 @@ export default function FrameFlowDashboard() {
   }
 
   return <div className={`app-shell frame-shell ${localeDir(locale) === "rtl" ? "rtl" : ""}`}>
-    <Toaster position="bottom-right" richColors />
+    <Toaster position={locale === "ar" ? "bottom-left" : "bottom-right"} richColors />
     <aside className="sidebar frame-sidebar">
       <div className="frame-logo frame-sidebar-brand"><span className="frame-logo-icon"><Clapperboard size={18} /></span><span>FrameFlow <span className="brand-light">Studio</span></span></div>
       <div className="side-label">{t.private.toUpperCase()} WORKSPACE</div>
