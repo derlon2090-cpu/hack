@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     try {
       const [session] = await db.insert(sessions).values({ id: newId(), code, name: input.name, purpose: input.purpose || null, destination: input.destination || null, locale: input.locale, expiresAt, retentionDays: input.retentionDays, ownerId: OWNER }).returning();
       const origin = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
-      return NextResponse.json({ ...session, url: `${origin.replace(/\/$/, "")}/s/${session.code}`, photoCount: 0 }, { status: 201 });
+      return NextResponse.json({ ...session, url: `${origin.replace(/\/$/, "")}/wal/${session.code}`, photoCount: 0 }, { status: 201 });
     } catch (error) {
       if ((error as { code?: string }).code === "23505" && attempt < 2) continue;
       throw error;

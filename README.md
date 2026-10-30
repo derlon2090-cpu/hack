@@ -34,7 +34,7 @@ Camera access requires HTTPS in production. Never enable public bucket access or
 ## Photo sessions and consent
 
 - Create a named session, choose its language, an optional purpose and official TikTok video destination, expiry, and photo retention period.
-- Share `/s/[code]`; codes are cryptographically random. Sessions can be cancelled, reactivated before expiry, or deleted with their private media.
+- Share `/wal/[code]`; codes are cryptographically random. Sessions can be cancelled, reactivated before expiry, or deleted with their private media. The older `/s/[code]` route remains available for existing links.
 - The public page explains the photo purpose and retention period. Camera access starts only after visitor consent, a separate camera action, and the browser's permission.
 - Visitors preview and may retake or cancel. Upload occurs only after explicit confirmation. Declining never requests camera access.
 - TikTok destinations use official HTTPS links. They remain visible to visitors; after confirmed photo storage the visitor may continue to the selected destination.
@@ -49,7 +49,7 @@ Sessions support configurable retention. Schedule `npm run photos:purge` daily a
 
 - `/login` — protected administrator access-code entry.
 - `/` — protected photo-only dashboard, session management, image library, and settings.
-- `/s/[code]` — public, expiry-checked consent and camera session.
+- `/wal/[code]` — public, expiry-checked consent and camera session; `/s/[code]` remains available for existing links.
 - `/api/sessions` and `/api/sessions/[code]` — protected session management plus explicit public/consent subroutes.
 - `/api/photos` and `/api/photos/[id]` — consent-bound photo upload and protected image access/deletion.
 

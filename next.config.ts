@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  async rewrites() {
+    return [{ source: "/wal/:code", destination: "/s/:code" }];
+  },
   async headers() {
     return [{
       source: "/(.*)",

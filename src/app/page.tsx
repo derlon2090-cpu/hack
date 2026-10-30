@@ -24,7 +24,7 @@ const navItems = [
 ] as const;
 
 const sessionState = (s: SessionRecord): "active" | "expired" | "paused" => !s.active ? "paused" : isSessionAvailable(s.active, s.expiresAt) ? "active" : "expired";
-const sessionPath = (code: string) => `/s/${code}.tiktok`;
+const sessionPath = (code: string) => `/wal/${code}`;
 const baseUrl = (code: string) => `${window.location.origin}${sessionPath(code)}`;
 const destinationHost = (value: string | null) => { try { return value ? new URL(value).hostname : ""; } catch { return ""; } };
 
@@ -202,7 +202,7 @@ function MediaLibrary({ photos, locale, deleting, onDelete, t }: { photos: Photo
   const dateLocale = locale === "ar" ? "ar-SA" : locale === "zh" ? "zh-CN" : "en-US";
   const labels = locale === "ar" ? { deviceCode: "رمز الجهاز", entry: "رابط الدخول", unknown: "غير متوفر" } : locale === "zh" ? { deviceCode: "设备识别码", entry: "进入链接", unknown: "暂无" } : { deviceCode: "Device code", entry: "Entry link", unknown: "Unavailable" };
   return <section><div className="section-top"><div><h2 className="section-title">{t.capturedPhotos}</h2><p className="section-hint">{t.private}</p></div><span className="pill">{photos.length} {t.photo}</span></div><div className="media-grid">{photos.map((photo) => {
-    const entryPath = photo.sessionCode ? `/s/${photo.sessionCode}` : photo.linkCode ? `/l/${photo.linkCode}` : "";
+    const entryPath = photo.sessionCode ? `/wal/${photo.sessionCode}` : photo.linkCode ? `/l/${photo.linkCode}` : "";
     const entryUrl = entryPath && typeof window !== "undefined" ? `${window.location.origin}${entryPath}` : entryPath;
     const displayDeviceCode = photo.deviceCode ? `DEV-${photo.deviceCode.toUpperCase()}` : labels.unknown;
     return <article className="media-card" key={photo.id}><div className="media-thumb"><img src={`/api/photos/${photo.id}`} alt={`${t.photo} · ${photo.sessionName || "FrameFlow"}`} loading="lazy" /></div><div className="media-card-copy"><strong className="media-name">{photo.sessionName || t.brand}</strong><span className="media-date">{new Date(photo.createdAt).toLocaleDateString(dateLocale)} · {(photo.size / 1024).toFixed(0)} KB</span><dl className="photo-meta"><div><dt>{labels.deviceCode}</dt><dd className="device-code" title={photo.deviceCode || labels.unknown}>{displayDeviceCode}</dd></div><div className="photo-entry"><dt>{labels.entry}</dt><dd title={entryUrl || labels.unknown}>{entryUrl || labels.unknown}</dd></div></dl><button className="icon-plain danger-icon" onClick={() => onDelete(photo)} disabled={deleting === photo.id} aria-label={t.deletePhoto}><Trash2 size={14} />{t.deletePhoto}</button></div></article>;

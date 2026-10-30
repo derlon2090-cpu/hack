@@ -31,7 +31,7 @@ function isPublicApi(path: string, method: string) {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  if (pathname === "/login" || pathname === "/favicon.svg" || pathname.startsWith("/s/") || pathname.startsWith("/l/") || pathname.startsWith("/v/")) return NextResponse.next();
+  if (pathname === "/login" || pathname === "/favicon.svg" || pathname.startsWith("/s/") || pathname.startsWith("/wal/") || pathname.startsWith("/l/") || pathname.startsWith("/v/")) return NextResponse.next();
   if (pathname.startsWith("/api/") && isPublicApi(pathname, request.method)) return NextResponse.next();
   if (await validSession(request.cookies.get(cookieName)?.value)) return NextResponse.next();
   if (pathname.startsWith("/api/")) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: { "Cache-Control": "no-store" } });
