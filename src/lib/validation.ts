@@ -22,7 +22,8 @@ export const linkInput = z.object({
 export const consentInput = z.object({
   purpose: z.string().trim().min(1).max(180),
   decision: z.enum(["granted", "denied"]),
-  locale: z.enum(["en", "ar", "zh"])
+  locale: z.enum(["en", "ar", "zh"]),
+  deviceCode: z.string().uuid().optional()
 });
 
 export const uploadInput = z.object({

@@ -8,7 +8,7 @@ import { newId } from "@/lib/ids";
 import { rateLimit, requestIp } from "@/lib/rate-limit";
 
 type Ctx = { params: Promise<{ code: string }> };
-function isMissingPhotoContextColumns(error: unknown) {
+function isMissingDeviceCodeColumn(error: unknown) {
   return typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "42703";
 }
 
@@ -19,16 +19,15 @@ export async function POST(request: Request, { params }: Ctx) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid consent request." }, { status: 400 });
   const [link] = await db.select({ id: links.id }).from(links).where(and(eq(links.code, code), eq(links.active, true))).limit(1);
   if (!link) return NextResponse.json({ error: "Link not found." }, { status: 404 });
-  const userAgent = request.headers.get("user-agent") || "";
-  const deviceType = /iPad|Tablet/i.test(userAgent) ? "tablet" : /Mobi|Android|iPhone/i.test(userAgent) ? "mobile" : "desktop";
-  const region = request.headers.get("x-vercel-ip-country-region") || request.headers.get("cf-region") || request.headers.get("x-vercel-ip-country") || request.headers.get("cf-ipcountry") || null;
+  const { deviceCode, ...choice } = parsed.data;
   let consent;
   try {
-    [consent] = await db.insert(consents).values({ id: newId(), linkId: link.id, ...parsed.data, deviceType, region, policyVersion: "2026-01" }).returning({ id: consents.id });
+    [consent] = await db.insert(consents).values({ id: newId(), linkId: link.id, ...choice, deviceCode, policyVersion: "2026-01" }).returning({ id: consents.id });
   } catch (error) {
-    // Older production databases may not have migration 0003 yet.
-    if (!isMissingPhotoContextColumns(error)) throw error;
-    [consent] = await db.insert(consents).values({ id: newId(), linkId: link.id, ...parsed.data, policyVersion: "2026-01" }).returning({ id: consents.id });
+    // Allow consent logging during a rolling deploy before migration 0004 completes.
+    if (!isMissingDeviceCodeColumn(error)) throw error;
+    const legacyPolicyVersion = deviceCode ? `2026-01;device=${deviceCode}` : "2026-01";
+    [consent] = await db.insert(consents).values({ id: newId(), linkId: link.id, ...choice, policyVersion: legacyPolicyVersion }).returning({ id: consents.id });
   }
   return NextResponse.json({ id: consent.id }, { status: 201 });
 }

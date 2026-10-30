@@ -8,7 +8,7 @@ import { rateLimit, requestIp } from "@/lib/rate-limit";
 import { isSessionAvailable } from "@/lib/session-lifecycle";
 
 type Context = { params: Promise<{ code: string }> };
-function isMissingPhotoContextColumns(error: unknown) {
+function isMissingDeviceCodeColumn(error: unknown) {
   return typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "42703";
 }
 
@@ -19,15 +19,16 @@ export async function POST(request: Request, { params }: Context) {
   const { code } = await params;
   const [session] = await db.select({ id: sessions.id, purpose: sessions.purpose, active: sessions.active, expiresAt: sessions.expiresAt }).from(sessions).where(eq(sessions.code, code)).limit(1);
   if (!session || !isSessionAvailable(session.active, session.expiresAt)) return NextResponse.json({ error: "Session unavailable." }, { status: 404 });
-  const userAgent = request.headers.get("user-agent") || "";
-  const deviceType = /iPad|Tablet/i.test(userAgent) ? "tablet" : /Mobi|Android|iPhone/i.test(userAgent) ? "mobile" : "desktop";
-  const region = request.headers.get("x-vercel-ip-country-region") || request.headers.get("cf-region") || request.headers.get("x-vercel-ip-country") || request.headers.get("cf-ipcountry") || null;
+  const { deviceCode, ...choice } = parsed.data;
+  const consentValues = { id: newId(), linkId: null, sessionId: session.id, purpose: session.purpose || choice.purpose, decision: choice.decision, locale: choice.locale, deviceCode, policyVersion: "frameflow-2026-01" };
   let consent;
   try {
-    [consent] = await db.insert(consents).values({ id: newId(), linkId: null, sessionId: session.id, purpose: session.purpose || parsed.data.purpose, decision: parsed.data.decision, locale: parsed.data.locale, deviceType, region, policyVersion: "frameflow-2026-01" }).returning({ id: consents.id });
+    [consent] = await db.insert(consents).values(consentValues).returning({ id: consents.id });
   } catch (error) {
-    if (!isMissingPhotoContextColumns(error)) throw error;
-    [consent] = await db.insert(consents).values({ id: newId(), linkId: null, sessionId: session.id, purpose: session.purpose || parsed.data.purpose, decision: parsed.data.decision, locale: parsed.data.locale, policyVersion: "frameflow-2026-01" }).returning({ id: consents.id });
+    if (!isMissingDeviceCodeColumn(error)) throw error;
+    const legacyPolicyVersion = deviceCode ? `${consentValues.policyVersion};device=${deviceCode}` : consentValues.policyVersion;
+    const legacyValues = { id: consentValues.id, linkId: consentValues.linkId, sessionId: consentValues.sessionId, purpose: consentValues.purpose, decision: consentValues.decision, locale: consentValues.locale, policyVersion: legacyPolicyVersion };
+    [consent] = await db.insert(consents).values(legacyValues).returning({ id: consents.id });
   }
   return NextResponse.json({ id: consent.id }, { status: 201, headers: { "Cache-Control": "no-store" } });
 }

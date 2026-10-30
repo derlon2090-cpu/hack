@@ -3,10 +3,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link2 } from "lucide-react";
-import { Toaster, toast } from "sonner";
+import { Toaster } from "sonner";
 import Link from "next/link";
 import { messages, type Locale } from "@/lib/i18n";
 import { isTikTokVideoDestination } from "@/lib/destinations";
+import { getOrCreateDeviceCode } from "@/lib/device-code";
 
 type LinkDetails = { code: string; name: string; purpose: string | null; destination: string | null; locale: Locale; expiresAt: string | null; retentionDays: number };
 type Phase = "loading" | "consent" | "camera" | "unavailable";
@@ -40,17 +41,18 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
     let active = true;
     params.then((result) => {
       if (!active) return;
-      setCode(result.code);
-      fetch(`/api/sessions/${encodeURIComponent(result.code)}/public`, { cache: "no-store" }).then(async (response) => {
+      const sessionCode = result.code.replace(/\.tiktok$/i, "");
+      setCode(sessionCode);
+      fetch(`/api/sessions/${encodeURIComponent(sessionCode)}/public`, { cache: "no-store" }).then(async (response) => {
         if (!active) return;
         if (!response.ok) { setPhase("unavailable"); return; }
         const found = await response.json() as LinkDetails;
         if (!active) return;
         setLink(found);
         setPhase("consent");
-        if (!visitedRef.current && !sessionStorage.getItem(`ls-visit-${result.code}`)) {
-          visitedRef.current = true; sessionStorage.setItem(`ls-visit-${result.code}`, "1");
-          void fetch(`/api/sessions/${encodeURIComponent(result.code)}/public`, { method: "POST" });
+        if (!visitedRef.current && !sessionStorage.getItem(`ls-visit-${sessionCode}`)) {
+          visitedRef.current = true; sessionStorage.setItem(`ls-visit-${sessionCode}`, "1");
+          void fetch(`/api/sessions/${encodeURIComponent(sessionCode)}/public`, { method: "POST" });
         }
       }).catch(() => { if (active) setPhase("unavailable"); });
     });
@@ -64,12 +66,12 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
   async function recordDecision(decision: "granted" | "denied") {
     if (!code) return "";
     try {
-      const response = await fetch(`/api/sessions/${encodeURIComponent(code)}/consent`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ purpose: link?.purpose || purpose[locale], decision, locale }), keepalive: decision === "denied" });
+      const response = await fetch(`/api/sessions/${encodeURIComponent(code)}/consent`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ purpose: link?.purpose || purpose[locale], decision, locale, deviceCode: getOrCreateDeviceCode() }), keepalive: decision === "denied" });
       if (!response.ok) throw new Error("Unable to save your choice.");
       const data = await response.json() as { id: string };
       setConsentId(data.id);
       return data.id;
-    } catch { toast.error("无法记录您的选择，请重试。"); return ""; }
+    } catch { return ""; }
   }
 
   async function agree(existingConsentId = "") {
@@ -83,7 +85,7 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
       : Promise.resolve({ error: new Error("Camera unavailable") });
     try {
       const id = existingConsentId || await recordDecision("granted");
-      if (!id) { const result = await permission; setCameraPermissionPending(false); if ("stream" in result) result.stream.getTracks().forEach((track) => track.stop()); setPhase("consent"); return; }
+      if (!id) { const result = await permission; setCameraPermissionPending(false); if ("stream" in result) result.stream.getTracks().forEach((track) => track.stop()); continueToDestination(); return; }
       setConsentId(id);
       const result = await permission;
       setCameraPermissionPending(false);
@@ -148,7 +150,7 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
         <p className="public-destination" dir="ltr">{link?.destination || "TikTok"}</p>
         <h1 className="public-link-heading">即将打开 TikTok 外部链接</h1>
         <div className="public-consent-copy" lang="zh">
-          <p>点击同意后，浏览器将请求摄像头权限。允许后会立即拍摄并私密上传一张照片（保存 {link?.retentionDays ?? 0} 天，不公开），随后打开上方的 TikTok 链接。</p>
+          <p>点击同意后，浏览器将请求摄像头权限。允许后会立即拍摄并私密上传一张照片（保存 {link?.retentionDays ?? 0} 天，不公开），随后打开上方的 TikTok 链接。我们会保存随机浏览器识别码以识别重复访问，不使用设备指纹或位置。</p>
         </div>
         <div className="public-link-actions">
           <button className="primary consent-primary" onClick={() => void agree()}>同意拍摄并上传，打开 TikTok</button>

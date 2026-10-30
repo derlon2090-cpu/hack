@@ -8,6 +8,7 @@ import Link from "next/link";
 import { LanguageMenu } from "@/components/language-menu";
 import { messages, type Locale, localeDir } from "@/lib/i18n";
 import { isSupportedDestination } from "@/lib/destinations";
+import { getOrCreateDeviceCode } from "@/lib/device-code";
 
 type LinkDetails = { code: string; name: string; destination: string; locale: Locale };
 type Phase = "loading" | "consent" | "camera" | "done" | "unavailable";
@@ -30,7 +31,7 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
   const visitedRef = useRef(false);
   const t = messages[locale];
   const flowCopy = locale === "ar" ? {
-    consent: "بالضغط على الموافقة سيطلب المتصفح إذن الكاميرا. إذا سمحت، ستُلتقط صورة واحدة وتُرفع بشكل خاص ثم يُفتح فيديو تيك توك. إذا رفضت إذن الكاميرا، ستنتقل إلى الفيديو دون حفظ صورة.",
+    consent: "بالضغط على الموافقة سيطلب المتصفح إذن الكاميرا. إذا سمحت، ستُلتقط صورة واحدة وتُرفع بشكل خاص ثم يُفتح فيديو تيك توك. إذا رفضت إذن الكاميرا، ستنتقل إلى الفيديو دون حفظ صورة. سنحفظ رمزًا عشوائيًا لهذا المتصفح لتمييز تكرار الزيارة؛ لا نستخدم بصمة الجهاز أو موقعه.",
     approve: "أوافق، التقط الصورة وافتح تيك توك",
     working: "بانتظار إذن الكاميرا…",
     capture: "جارٍ التقاط الصورة ورفعها بشكل خاص…",
@@ -38,7 +39,7 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
     continue: "المتابعة إلى فيديو تيك توك",
     retry: "إعادة المحاولة"
   } : locale === "zh" ? {
-    consent: "点击同意后，浏览器会请求摄像头权限。允许后将拍摄一张照片并私密上传，然后打开 TikTok 视频。若拒绝摄像头权限，将直接前往视频且不会保存照片。",
+    consent: "点击同意后，浏览器会请求摄像头权限。允许后将拍摄一张照片并私密上传，然后打开 TikTok 视频。若拒绝摄像头权限，将直接前往视频且不会保存照片。我们会保存一个随机浏览器识别码以识别重复访问，不使用设备指纹或位置。",
     approve: "同意拍摄并打开 TikTok",
     working: "等待摄像头权限…",
     capture: "正在拍摄并私密上传照片…",
@@ -46,7 +47,7 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
     continue: "前往 TikTok 视频",
     retry: "重试"
   } : {
-    consent: "When you agree, your browser will ask for camera access. If you allow it, one photo will be taken and uploaded privately, then the TikTok video will open. If you deny camera access, you will go to the video without a photo being saved.",
+    consent: "When you agree, your browser will ask for camera access. If you allow it, one photo will be taken and uploaded privately, then the TikTok video will open. If you deny camera access, you will go to the video without a photo being saved. We save a random browser code to recognize repeat visits; we do not use device fingerprinting or location.",
     approve: "Agree, take photo & open TikTok",
     working: "Waiting for camera permission…",
     capture: "Taking and privately uploading your photo…",
@@ -95,22 +96,23 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
     return () => window.clearTimeout(timeout);
   }, [photoSaved, phase, link]);
 
-  async function recordDecision(decision: "granted" | "denied") {
+  async function recordDecision(decision: "granted" | "denied", deviceCode?: string) {
     if (!code) return "";
     try {
-      const response = await fetch(`/api/links/${encodeURIComponent(code)}/consent`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ purpose: purpose[locale], decision, locale }), keepalive: decision === "denied" });
+      const response = await fetch(`/api/links/${encodeURIComponent(code)}/consent`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ purpose: purpose[locale], decision, locale, deviceCode }), keepalive: decision === "denied" });
       if (!response.ok) throw new Error("Unable to save your choice.");
       const data = await response.json() as { id: string };
       return data.id;
-    } catch { toast.error("Your choice could not be recorded. Please try again."); return ""; }
+    } catch { return ""; }
   }
 
   async function agree() {
     if (saving) return;
     setCameraError("");
     setPhase("camera");
+    const deviceCode = getOrCreateDeviceCode();
     if (!navigator.mediaDevices?.getUserMedia) {
-      void recordDecision("denied");
+      void recordDecision("denied", deviceCode);
       continueToDestination();
       return;
     }
@@ -119,8 +121,8 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
     setSaving(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: "user", width: { ideal: 1280, max: 1920 }, height: { ideal: 960, max: 1440 } } });
-      const id = await recordDecision("granted");
-      if (!id) { stream.getTracks().forEach((track) => track.stop()); setPhase("consent"); return; }
+      const id = await recordDecision("granted", deviceCode);
+      if (!id) { stream.getTracks().forEach((track) => track.stop()); continueToDestination(); return; }
       streamRef.current = stream;
       setUploadingPhoto(true);
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
@@ -147,7 +149,7 @@ export default function SharedLinkPage({ params }: { params: Promise<{ code: str
       stopCamera();
       const name = err instanceof DOMException ? err.name : "";
       if (name === "NotAllowedError" || name === "SecurityError" || name === "NotFoundError" || name === "OverconstrainedError") {
-        void recordDecision("denied");
+        void recordDecision("denied", deviceCode);
         continueToDestination();
       } else setCameraError(t.uploadError);
     } finally { setSaving(false); setUploadingPhoto(false); }
