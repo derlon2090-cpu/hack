@@ -181,6 +181,35 @@ html[data-theme="light"] .landing-lead,html[data-theme="light"] .landing-explain
 html[data-theme="light"] .campaign-box,html[data-theme="light"] .purpose-box{background:#f7f7fc;border-color:#e6e7f0;color:#53576d}
 html[data-theme="light"] .campaign-label{color:#777c93}
 html[data-theme="light"] .destination-box{color:#5b6482}
+
+/* Apply the rose brand across the complete workspace and sign-in experience. */
+html[data-theme="light"]{--ink:#28242b;--muted:#82777c;--line:#eee3e7;--paper:#fcf9fa;--card:#fff;--olive:#f52659;--olive-dark:#d91d4d;--pale:#fff0f4;--shadow:0 14px 36px rgba(75,37,49,.065)}
+html[data-theme="light"] .sidebar{background:#fff4f6;border-color:#f0e4e8}
+html[data-theme="light"] .nav-item.selected{color:#d91d4d;background:#fff;box-shadow:0 2px 9px rgba(114,39,60,.08)}
+html[data-theme="light"] .nav-item.selected svg,html[data-theme="light"] .link-icon,html[data-theme="light"] .stat-icon,html[data-theme="light"] .empty-icon,html[data-theme="light"] .photo-thumb{color:#f52659}
+html[data-theme="light"] .nav-item:hover{background:#fde9ee;color:#b91e45}
+html[data-theme="light"] .avatar,html[data-theme="light"] .link-icon,html[data-theme="light"] .stat-icon,html[data-theme="light"] .empty-icon,html[data-theme="light"] .photo-thumb{background:#fff0f4}
+html[data-theme="light"] .stat-card{background:linear-gradient(145deg,#fff,#fffafb)}
+html[data-theme="light"] th{background:#fff7f9}
+html[data-theme="light"] .icon-plain:hover{color:#c51c49;background:#fff0f4}
+html[data-theme="light"] .primary{background:#f52659!important;box-shadow:0 7px 18px rgba(245,38,89,.2)}
+html[data-theme="light"] .primary:hover{background:#dc1f50!important}
+html[data-theme="light"] .input:focus,html[data-theme="light"] .form-input:focus{border-color:#f28aa4;outline-color:rgba(245,38,89,.17)}
+html[data-theme="light"] .secret-field .form-input:focus{border-color:#f28aa4;outline-color:rgba(245,38,89,.17)}
+html[data-theme="light"] .frame-login-card .primary:hover{box-shadow:0 13px 30px rgba(245,38,89,.28)}
+html[data-theme="light"] .switch[aria-checked="true"]{background:#f52659}
+html[data-theme="light"] .login-page{background:radial-gradient(ellipse at 50% 0%,#ffe3eb,transparent 48%),#fcf8fa}
+html[data-theme="light"] .landing-shell{background:radial-gradient(ellipse at 35% 0%,#ffeaf0,transparent 43%),#fcf8fa}
+html[data-theme="light"] .landing-badge{background:#fff2f5;border-color:#f4dce3;color:#be3153}
+html[data-theme="light"] .login-card,html[data-theme="light"] .landing-card{border-color:#f0e3e8}
+html[data-theme="dark"]{--olive:#ff426e;--olive-dark:#e92659;--pale:#351a25}
+html[data-theme="dark"] .login-page{background:radial-gradient(ellipse at 50% 12%,rgba(245,38,89,.2),transparent 44%),radial-gradient(ellipse at 8% 90%,rgba(255,93,135,.07),transparent 35%),#0b0d12}
+html[data-theme="dark"] .secret-field .form-input:focus{border-color:#ff6386;outline-color:rgba(245,38,89,.25)}
+html[data-theme="dark"] .frame-login-card .primary:hover{box-shadow:0 13px 30px rgba(245,38,89,.32)}
+html[data-theme="dark"] .frame-login-card .primary:focus-visible,html[data-theme="dark"] .secret-toggle:focus-visible{outline-color:#ff8da7}
+html[data-theme="dark"] .nav-item.selected{background:#321b27;color:#ff8da7}
+html[data-theme="dark"] .nav-item.selected svg,html[data-theme="dark"] .frame-kicker,html[data-theme="dark"] .frame-stat-accent{color:#ff7495}
+html[data-theme="dark"] .landing-badge{background:#321b27;border-color:#50303a;color:#ff9ab0}
 html[data-theme="light"] .purpose-check{color:#454a62}
 html[data-theme="light"] .landing-bottom{color:#777c91}
 html[data-theme="light"] .success-note{background:#e3f6ef;color:#087e68}
